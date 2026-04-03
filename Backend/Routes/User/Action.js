@@ -3,6 +3,9 @@ import supabase from "../../Middleware/supabase.js";
 import { createAuthUser } from "../../Database/User/Post/CreateUser.js";
 import { adminOnly } from "../../Middleware/Admin.js";
 import { deleteUserByAdmin } from "../../Database/User/Delete/DeleteUser.js";
+import { getUserByIdOrEmail } from "../../Database/User/Get/GetUser.js";
+import { adminOnlyOrSelf } from "../../Middleware/adminOnlyOrSelf.js";
+import { getAllUsers } from "../../Database/User/Get/GetUser.js";
 
 
 const router = express.Router();
@@ -81,5 +84,49 @@ router.delete("/users", adminOnly, async (req, res) => {
   }
 });
 
+router.get("/user", adminOnlyOrSelf, async (req, res) => {
+  try {
+    const { id, email } = req.query;
+
+    if (!id && !email) {
+      return res.status(400).json({
+        error: "Provide user id or email",
+      });
+    }
+
+    const user = await getUserByIdOrEmail({ id, email });
+
+    return res.status(200).json({
+      message: "User fetched successfully",
+      user,
+    });
+
+  } catch (err) {
+    console.error("Get user error:", err);
+
+    return res.status(500).json({
+      error: err.message || "Failed to fetch user",
+    });
+  }
+});
+
+
+router.get("/users", adminOnly, async (req, res) => {
+  try {
+    const result = await getAllUsers();
+
+    return res.status(200).json({
+      message: "Users fetched successfully",
+      ...result,
+    });
+
+  } catch (err) {
+    console.error("Get users error:", err);
+
+    return res.status(500).json({
+      error: err.message || "Failed to fetch users",
+    });
+  }
+});
 
 export default router; 
