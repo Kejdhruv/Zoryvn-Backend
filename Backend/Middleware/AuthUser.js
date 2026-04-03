@@ -1,4 +1,4 @@
-import supabase from "./DatabaseConnect.js";
+import supabase from "./supabase.js";
 
 export const getAuthUser = async (req) => {
   const token = req.cookies?.Zoryvn_Token;
@@ -11,7 +11,7 @@ export const getAuthUser = async (req) => {
 export const FindRole = async (userId) => {
   const { data, error } = await supabase
     .from("users")
-    .select("role")
+    .select("role , status")
     .eq("id", userId)
     .single();
 
