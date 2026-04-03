@@ -2,7 +2,7 @@ import express from "express";
 import supabase from "../../Middleware/supabase.js";
 import { createAuthUser } from "../../Database/User/Post/CreateUser.js";
 import { adminOnly } from "../../Middleware/Admin.js";
-
+import { deleteUserByAdmin } from "../../Database/User/Delete/DeleteUser.js";
 
 const router = express.Router();
 
@@ -70,6 +70,8 @@ router.post("/auth/login", async (req, res) => {
   }
 });
 
+
+// User Creation By Admin
 router.post("/createUser", adminOnly, async (req, res) => {
   try {
      
@@ -106,6 +108,39 @@ router.post("/createUser", adminOnly, async (req, res) => {
     console.error("Signup error:", err);
     return res.status(500).json({
       error: err.message || "Signup failed"
+    });
+  }
+});
+
+//Delete a User
+router.delete("/users", adminOnly, async (req, res) => {
+  try {
+    const { id } = req.query;
+
+    if (!id) {
+      return res.status(400).json({
+        error: "User ID is required",
+      });
+    }
+
+    // 🔒 Prevent self delete (recommended)
+    if (req.user.id === id) {
+      return res.status(400).json({
+        error: "You cannot delete yourself",
+      });
+    }
+
+    await deleteUserByAdmin(id);
+
+    return res.status(200).json({
+      message: "User deleted successfully",
+    });
+
+  } catch (err) {
+    console.error("Delete error:", err);
+
+    return res.status(500).json({
+      error: err.message || "Delete failed",
     });
   }
 });
