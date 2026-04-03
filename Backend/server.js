@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import Authentication from "./Routes/User/Auth.js"
-
+import UserAction from "./Routes/User/Action.js"
 
 
 const app = express();
@@ -20,6 +20,7 @@ app.use(cors({
 }));
 
 app.use("/", Authentication);
+app.use("/", UserAction);
 
 
 app.listen(PORT, () => {

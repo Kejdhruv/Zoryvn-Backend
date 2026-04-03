@@ -1,8 +1,5 @@
 import express from "express";
 import supabase from "../../Middleware/supabase.js";
-import { createAuthUser } from "../../Database/User/Post/CreateUser.js";
-import { adminOnly } from "../../Middleware/Admin.js";
-import { deleteUserByAdmin } from "../../Database/User/Delete/DeleteUser.js";
 
 const router = express.Router();
 
@@ -71,80 +68,52 @@ router.post("/auth/login", async (req, res) => {
 });
 
 
-// User Creation By Admin
-router.post("/createUser", adminOnly, async (req, res) => {
+router.post("/auth/logout", async (req, res) => {
   try {
-     
-    const { email, password, role } = req.body;
+    const token = req.cookies?.Zoryvn_Token;
 
-    // Validate
-    if (!email || !password || !role ) {
-      return res.status(400).json({
-        error: "All fields are required"
-      });
-    }
+    let userId = null;
 
-    const authUser = await createAuthUser(
-      email,
-      password,
-      role 
-    );
+    // 🔹 Step 1: Get user from token
+    if (token) {
+      const { data, error } = await supabase.auth.getUser(token);
 
-    if (!authUser) {
-      return res.status(400).json({
-        error: "User creation failed"
-      });
-    }
-
-    return res.status(201).json({
-      message: "Signup successful",
-      user: {
-        id: authUser.id,
-        email: authUser.email,
+      if (!error && data?.user) {
+        userId = data.user.id;
       }
-    });
-
-  } catch (err) {
-    console.error("Signup error:", err);
-    return res.status(500).json({
-      error: err.message || "Signup failed"
-    });
-  }
-});
-
-//Delete a User
-router.delete("/users", adminOnly, async (req, res) => {
-  try {
-    const { id } = req.query;
-
-    if (!id) {
-      return res.status(400).json({
-        error: "User ID is required",
-      });
     }
 
-    // 🔒 Prevent self delete (recommended)
-    if (req.user.id === id) {
-      return res.status(400).json({
-        error: "You cannot delete yourself",
-      });
+    // 🔹 Step 2: Update status → inactive
+    if (userId) {
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({ status: "inactive" })
+        .eq("id", userId);
+
+      if (updateError) {
+        console.error("Status update error:", updateError);
+      }
     }
 
-    await deleteUserByAdmin(id);
+    // 🔹 Step 3: Clear cookie
+    res.clearCookie("Zoryvn_Token", {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      path: "/"
+    });
 
     return res.status(200).json({
-      message: "User deleted successfully",
+      message: "Logout successful",
     });
 
   } catch (err) {
-    console.error("Delete error:", err);
+    console.error("Logout error:", err);
 
     return res.status(500).json({
-      error: err.message || "Delete failed",
+      error: "Logout failed",
     });
   }
 });
 
-
-
-export default router; 
+export default router;
